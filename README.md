@@ -1,4 +1,4 @@
-# CancerImage
+# CancerMethImage
 Idea of use deeplearing Algorithm for detecting ealy cancer,use cfDNA methylation 。   
 1.first use fastp merge R1 and R2，  
 2、merged reads  mapping to the reference genome   
