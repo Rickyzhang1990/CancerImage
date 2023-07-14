@@ -84,7 +84,7 @@ def MarkRead2Bed(reads,ref,refmark):
     BS_conversion = {'+': ('C','T','G','A'), '-': ('G','A','C','T')}
     outlines = []
     for line in reads:
-        pattern,index = [],[]
+        pattern,index = "",[]
         map_info = get_alignment(line)
         if len(map_info) == 0: continue
         seq, strand, cr, pos = map_info
@@ -94,35 +94,32 @@ def MarkRead2Bed(reads,ref,refmark):
         for i in re.finditer(match,refseq[pos:pos2]):
             index = int(i.span()[0])
             if (seq[index] == match or seq[index] == rc_match) and refmarkcr[pos+index] in seq_context:
-                pattern.append("C")
+                pattern += "C"
                 index.append(str(pos+index))
             elif (seq[index] == convert or seq[index] == rc_convert) and refmarkcr[pos+index] in seq_context:
-                pattern.append("T")
+                pattern += "T"
                 index.append(str(pos+index))
             else:pass
-        outline = "\t".join([cr,str(pos),str(pos2),"".join(pattern),",".join(index)])
+        outline = "\t".join([cr,str(pos),str(pos2),pattern,",".join(index)])
         outlines.append(outline)
     return outlines
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='quantifying methylation level from aligned files')
+    parser.add_argument('infiles',help="input aligned files")
     parser.add_argument("-o", "--out", dest="outfile", metavar="FILE", help="output methylation ratio file name. [default: STDOUT]", default="")
     parser.add_argument("-d", "--ref", dest="reffile", metavar="FILE", help="reference genome fasta file. (required)", default="")
     parser.add_argument("-c", "--chr", dest="chroms", metavar="CHR", help="process only specified chromosomes, separated by ','. [default: all]\nexample: --chroms=chr1,chr2", default=[])
     parser.add_argument("-s", "--sam-path", dest="sam_path", metavar="PATH", help="path to samtools. [default: none]", default='')
     parser.add_argument("-u", "--unique", action="store_true", dest="unique", help="process only unique mappings/pairs.", default=False)
-    parser.add_argument("-p", "--pair", action="store_true", dest="pair", help="process only properly paired mappings.", default=False)
     parser.add_argument("-q", "--quiet", action="store_true", dest="quiet", help="don't print progress on stderr.", default=False)
     parser.add_argument("-r", "--remove-duplicate", action="store_true", dest="rm_dup", help="remove duplicated reads.", default=False)
     parser.add_argument("-t", "--trim-fillin", dest="trim_fillin", type=int, metavar='N', help="trim N end-repairing fill-in nucleotides. [default: 0]", default=0)
-    parser.add_argument("-T", "--thread", dest="thread", help="number of thread use for this proframe", default=12)
-    parser.add_argument("-n", "--no-header", action="store_true", dest="no_header", help="don't print a header line", default=False)
+    parser.add_argument("-T", "--thread", dest="thread", help="number of thread use for this program", default=12)
     parser.add_argument("-x", "--context", dest="context", metavar='TYPE', help="methylation pattern type [CG|CHG|CHH], multiple types separated by ','. [default: all]", default='')
-    parser.add_argument("-R", "--region", dest="region", metavar="FILE", help="bedfile of interested region. (required)", default='')
     
     args = parser.parse_args()
 
-    args.infiles = [args.infiles]
     if len(args.reffile) == 0: parser.error("Missing reference file, use -d or --ref option.")
     if len(args.infiles) == 0: parser.error("Require at least one BSMAP_MAPPING_FILE.")
     if len(args.chroms) > 0: args.chroms = set(args.chroms.split(','))
