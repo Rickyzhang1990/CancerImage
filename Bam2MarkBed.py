@@ -12,20 +12,23 @@ import re
 
 
 def disp(txt, nt=0):
-    if not args.quiet: sys.stderr.write('[methratio] @%s \t%s' %(time.asctime(), txt))
+    if not args.quiet: sys.stderr.write('[Bam2Bed] @%s \t%s \n' %(time.asctime(), txt))
 
 def read_bam(bam,chunksize=1000):
     '''
      use generator to export bam data
     '''
     reads = []
-    with os.popen(f"samtools view -F 3844  {bam}") as f1:
+    with os.popen(f"samtools view -F 3844 {bam}") as f1:
+        disp("start Reading Bams")
         for line in f1:
             line = line.strip()
             if not len(reads) >= chunksize:
                 reads.append(line)
             else:
+                print(len(reads))
                 yield reads
+                reads = []
         yield reads               
 
 def get_alignment(line):
@@ -83,6 +86,7 @@ def MarkRead2Bed(reads,ref,refmark):
     '''abstract information from reads'''
     BS_conversion = {'+': ('C','T','G','A'), '-': ('G','A','C','T')}
     outlines = []
+    disp("start Marking reads from bed")
     for line in reads:
         pattern,index = "",[]
         map_info = get_alignment(line)
@@ -106,7 +110,7 @@ def MarkRead2Bed(reads,ref,refmark):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='quantifying methylation level from aligned files')
-    parser.add_argument('infiles',help="input aligned files")
+    parser.add_argument('-i','--infiles',dest="infiles",help="input aligned files",required=True)
     parser.add_argument("-o", "--out", dest="outfile", metavar="FILE", help="output methylation ratio file name. [default: STDOUT]", default="")
     parser.add_argument("-d", "--ref", dest="reffile", metavar="FILE", help="reference genome fasta file. (required)", default="")
     parser.add_argument("-c", "--chr", dest="chroms", metavar="CHR", help="process only specified chromosomes, separated by ','. [default: all]\nexample: --chroms=chr1,chr2", default=[])
@@ -178,7 +182,7 @@ if __name__ == "__main__":
   ## pool 
     pool = Pool(int(args.thread))
     with open(args.outfile,'w') as f2:
-        for reads in read_bam(args.infile):
+        for reads in read_bam(args.infiles):
             pool.apply_async(MarkRead2Bed,args=(reads,ref,refmark,),callback=lambda x:f2.write("\n".join(x)))
 
     print("done") 
